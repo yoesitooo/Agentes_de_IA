@@ -19,5 +19,5 @@ ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
 
 # --- NVIDIA NIM (free endpoints, OpenAI-compatible) ---
 NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
-NVIDIA_MODEL = os.getenv("NVIDIA_MODEL", "qwen/qwen3-235b-a22b")
+NVIDIA_MODEL = os.getenv("NVIDIA_MODEL", "abacusai/dracarys-llama-3.1-70b-instruct")
 NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"

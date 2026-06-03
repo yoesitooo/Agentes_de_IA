@@ -7,8 +7,41 @@ WORKSPACE_DIR = Path(__file__).parent / "workspace"
 
 
 def _strip_markdown_fences(text: str) -> str:
-    """Elimina bloques ```...``` que algunos modelos locales añaden alrededor del XML."""
     return re.sub(r"```[a-zA-Z]*\n?", "", text)
+
+
+def _patch_html(html: str) -> str:
+    """
+    Correcciones automáticas a patrones que los modelos generan mal de forma consistente.
+    """
+    # 1. Hero sin flex-col: si el hero tiene flex pero no flex-col, apila verticalmente
+    html = re.sub(
+        r'(class="[^"]*hero[^"]*flex(?!\s+flex-col)[^"]*")',
+        lambda m: m.group(0).replace('flex ', 'flex flex-col '),
+        html
+    )
+
+    # 2. Año hardcodeado en footer: reemplaza con JS dinámico
+    # Cubre: "© 2023", "&copy; 2023", "2023 Nombre", "Copyright 2023"
+    html = re.sub(
+        r'(&copy;|©|[Cc]opyright)?\s*(19|20)\d{2}',
+        lambda m: (m.group(1) + ' ' if m.group(1) else '') + '<span id="footer-year"></span>',
+        html
+    )
+    if 'footer-year' in html and 'footer-year' not in html.split('<script')[-1]:
+        html = html.replace(
+            '</body>',
+            '  <script>document.getElementById("footer-year").textContent=new Date().getFullYear();</script>\n</body>'
+        )
+
+    # 3. style.css enlazado: si hay archivo style.css generado pero no hay <link> para él, lo agrega
+    if 'href="style.css"' not in html and '</head>' in html:
+        html = html.replace(
+            '</head>',
+            '  <link rel="stylesheet" href="style.css">\n</head>'
+        )
+
+    return html
 
 
 def extract_project_name(response_text: str) -> str:
@@ -18,7 +51,9 @@ def extract_project_name(response_text: str) -> str:
             'No se encontró <project name="..."> en la respuesta.\n'
             "El modelo no siguió el formato de salida definido en las skills."
         )
-    return match.group(1).strip()
+    raw = match.group(1).strip()
+    safe = re.sub(r"[^a-zA-Z0-9\-_]", "-", raw).strip("-") or "proyecto"
+    return safe
 
 
 def extract_files(response_text: str) -> List[Tuple[str, str]]:
@@ -33,7 +68,6 @@ def extract_files(response_text: str) -> List[Tuple[str, str]]:
 
 
 def save_project_from_response(response_text: str, open_browser: bool = True) -> Path:
-    # Limpia bloques markdown que modelos locales pueden agregar
     clean_text = _strip_markdown_fences(response_text)
 
     project_name = extract_project_name(clean_text)
@@ -47,8 +81,12 @@ def save_project_from_response(response_text: str, open_browser: bool = True) ->
     for filename, content in files:
         file_path = project_dir / filename
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        file_path.write_text(content.strip(), encoding="utf-8")
-        print(f"  ✓ {file_path}")
+
+        # Aplica correcciones automáticas solo a archivos HTML
+        final_content = _patch_html(content.strip()) if filename.endswith(".html") else content.strip()
+
+        file_path.write_text(final_content, encoding="utf-8")
+        print(f"  [OK] {file_path}")
 
         if filename.endswith(".html") and main_html is None:
             main_html = file_path

@@ -5,8 +5,8 @@ python-dotenv>=1.0.0
 # Requiere tener Ollama instalado: https://ollama.com
 ollama>=0.3.0
 
-# Para PROVIDER=openai — descomenta si lo usas:
-# openai>=1.30.0
+# Para PROVIDER=openai o PROVIDER=nvidia (ambos usan este cliente)
+openai>=1.30.0
 
 # Para PROVIDER=anthropic (Claude) — descomenta si lo usas:
 # anthropic>=0.28.0

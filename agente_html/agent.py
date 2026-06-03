@@ -1,3 +1,4 @@
+from pathlib import Path
 import config
 from skill_loader import load_all_skills
 from project_writer import save_project_from_response
@@ -65,6 +66,8 @@ def ask_agent(user_prompt: str) -> str:
                 {"role": "system", "content": system_prompt},
                 *messages,
             ],
+            max_tokens=8192,
+            temperature=0.4,
         )
         return response.choices[0].message.content
 
@@ -98,6 +101,8 @@ def ask_agent(user_prompt: str) -> str:
                 {"role": "system", "content": system_prompt},
                 *messages,
             ],
+            max_tokens=8192,
+            temperature=0.4,
         )
         return response.choices[0].message.content
 
@@ -109,7 +114,7 @@ def ask_agent(user_prompt: str) -> str:
 
 
 def main():
-    env_path = __import__("pathlib").Path(__file__).parent / ".env"
+    env_path = Path(__file__).parent / ".env"
     if not env_path.exists():
         print("[AVISO] No se encontró el archivo .env")
         print(f"  → Copia .env.example a .env y configura tu proveedor:")
@@ -157,9 +162,12 @@ def main():
             print(f"\n[ERROR inesperado] {e}\n")
             continue
 
-        print("--- RESPUESTA DEL AGENTE ---")
-        print(answer[:600] + ("..." if len(answer) > 600 else ""))
-        print("----------------------------\n")
+        import re as _re
+        archivos = _re.findall(r'<file\s+name="([^"]+)">', answer)
+        proyecto = _re.search(r'<project\s+name="([^"]+)">', answer)
+        nombre = proyecto.group(1) if proyecto else "?"
+        print(f"Proyecto: {nombre}  |  Archivos: {', '.join(archivos) if archivos else 'ninguno detectado'}")
+        print()
 
         try:
             project_dir = save_project_from_response(answer, open_browser=True)
