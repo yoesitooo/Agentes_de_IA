@@ -22,10 +22,10 @@ def _patch_html(html: str) -> str:
     )
 
     # 2. Año hardcodeado en footer: reemplaza con JS dinámico
-    # Cubre: "© 2023", "&copy; 2023", "2023 Nombre", "Copyright 2023"
+    # Solo reemplaza cuando el año va precedido de © / &copy; / Copyright (no en URLs ni atributos)
     html = re.sub(
-        r'(&copy;|©|[Cc]opyright)?\s*(19|20)\d{2}',
-        lambda m: (m.group(1) + ' ' if m.group(1) else '') + '<span id="footer-year"></span>',
+        r'(&copy;|©|[Cc]opyright)\s*(19|20)\d{2}',
+        lambda m: m.group(1) + ' <span id="footer-year"></span>',
         html
     )
     if 'footer-year' in html and 'footer-year' not in html.split('<script')[-1]:
